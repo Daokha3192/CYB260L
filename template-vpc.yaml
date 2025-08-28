@@ -1,0 +1,102 @@
+# Description: Create a VPC in us-west-2 with 3 public subnets, IGW, and routing
+# Revision number: 1
+# Date: 2025-08-28
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  VPC stack intended for deployment in AWS us-west-2. Creates a VPC spanning at
+  least three Availability Zones with public subnets, an Internet Gateway, and routing.
+
+Parameters:
+  StudentID:
+    Type: String
+    Description: Your ECPI student ID to tag/label the VPC (no spaces)
+    AllowedPattern: '[A-Za-z0-9\-]+'
+    ConstraintDescription: Only letters, numbers, and dashes are allowed.
+
+  VpcCidr:
+    Type: String
+    Default: 10.30.0.0/16
+    Description: CIDR block for the VPC
+
+  PublicSubnetACidr:
+    Type: String
+    Default: 10.30.0.0/20
+    Description: CIDR for public subnet in AZ A
+
+  PublicSubnetBCidr:
+    Type: String
+    Default: 10.30.16.0/20
+    Description: CIDR for public subnet in AZ B
+
+  PublicSubnetCCidr:
+    Type: String
+    Default: 10.30.32.0/20
+    Description: CIDR for public subnet in AZ C
+
+Mappings:
+  Tags:
+    Project:
+      Name: CYB260L
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub 'VPC-${StudentID}'
+        - Key: Project
+          Value: !FindInMap [Tags, Project, Name]
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub 'igw-${AWS::StackName}'
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub 'public-rt-${AWS::StackName}'
+
+  DefaultRouteToInternet:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [0, !GetAZs '']   # deploy stack in us-west-2
+      CidrBlock: !Ref PublicSubnetACidr
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub 'public-a-${AWS::StackName}'
+
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [1, !GetAZs '']
+      CidrBlock: !Ref PublicSubnetBCidr
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
