@@ -1,5 +1,10 @@
+# Description: Add an additional EBS volume for persistent data
+# Revision: 1.0
+# Date: 2025-08-21
+
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Amazon Elastic Compute Cloud (EC2) Template
+
 Parameters:
   LatestAmiId:
     Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
@@ -10,8 +15,15 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: !Ref LatestAmiId
-      KeyName: !Ref AWS::AccountId
+      KeyName: !Ref AWS::AccountId          # (left as-is per assignment directions)
       InstanceType: t2.micro
       NetworkInterfaces:
-        - AssociatePublicIpAddress: "true"
-          DeviceIndex: "0"
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+
+      BlockDeviceMappings:
+        - DeviceName: /dev/sdm
+          Ebs:
+            VolumeType: gp2
+            DeleteOnTermination: false
+            VolumeSize: 20
